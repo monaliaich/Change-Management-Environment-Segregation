@@ -45,8 +45,8 @@ For each system, the tool checks if all three required environments (DEV, TEST, 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/environment-segregation-analysis.git
-cd environment-segregation-analysis
+git clone https://github.com/monaliaich/Change-Management-Environment-Segregation.git
+cd Change-Management-Environment-Segregation
 ```
 
 ### Set Up Virtual Environment
