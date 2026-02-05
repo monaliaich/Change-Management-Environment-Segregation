@@ -132,24 +132,25 @@ You can run the tool in two modes:
 
 ```bash
 # Run a specific process
-python main.py --process env  # For environment register analysis
-python main.py --process db   # For database analysis
-python main.py --process server  # For server analysis
-python main.py --process url  # For URL endpoint analysis
-python main.py --process cloud  # For cloud resource analysis
+python src/main.py --process env  # For environment register analysis
+python src/main.py --process db   # For database analysis
+python src/main.py --process server  # For server analysis
+python src/main.py --process url  # For URL endpoint analysis
+python src/main.py --process cloud  # For cloud resource analysis
 
 # Run all processes
-python main.py --process all
+python src/main.py --process all
 ```
 
 2. **Scheduled Mode**:
 
 ```bash
 # Schedule a specific process to run every 5 minutes for 1 hour
-python main.py --mode schedule --process env --interval 5 --duration 60
+python src/main.py --mode schedule --process env --interval 5 --duration 60
+python src/main.py --mode schedule --process db --interval 1 --duration 10
 
 # Schedule all processes to run indefinitely
-python main.py --mode schedule --process all --duration 0
+python src/main.py --mode schedule --process all --duration 0
 ```
 
 ### Command Line Arguments

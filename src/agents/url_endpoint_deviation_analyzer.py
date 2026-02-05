@@ -127,9 +127,14 @@ class URLEndpointDeviationAnalyzer:
                 self.logger.error(f"Input file not found: {self.input_file}")
                 return False
             
-            # Read the Excel file
-            excel_file = pd.ExcelFile(self.input_file)
-            
+            try:
+                 # Read the Excel file
+                excel_file = pd.ExcelFile(self.input_file)
+            except Exception as excel_error:
+                self.logger.error(f"Excel file appears to be corrupted: {str(excel_error)}")
+                self.logger.info("Please regenerate the data by running the extraction process again")
+                return False
+                    
             # Check if URL_Endpoint_Listing sheet exists
             if "URL_Endpoint_Listing" not in excel_file.sheet_names:
                 self.logger.error("Required sheet 'URL_Endpoint_Listing' not found in input file")
@@ -679,7 +684,9 @@ class URLEndpointDeviationAnalyzer:
             metadata_df = self._create_metadata()
             
             # Create a writer object to write to a new Excel file
-            with pd.ExcelWriter(output_file_path, engine='openpyxl') as writer:
+            writer = pd.ExcelWriter(output_file_path, engine='openpyxl')
+
+            try:
                 # Write the input URL endpoint data to the first sheet
                 self.url_data.to_excel(writer, sheet_name="URL_Endpoint_Listing", index=False)
                 
@@ -688,6 +695,13 @@ class URLEndpointDeviationAnalyzer:
                 
                 # Write the metadata to the third sheet
                 metadata_df.to_excel(writer, sheet_name="Metadata", index=False)
+
+                # Explicitly flush and close
+                writer.close()        
+                    
+            except Exception as write_error:
+                print(f"Error writing Excel file: {str(write_error)}")
+                return None        
             
             self.logger.info(f"Analysis results saved to {output_file_path}")
             return output_file_path

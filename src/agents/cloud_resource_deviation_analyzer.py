@@ -112,7 +112,7 @@ class CloudResourceDeviationAnalyzer:
         
     def load_data(self):
         """
-        Load data from the input file.
+        Load data from the input file with better error handling.
         
         Returns:
             bool: True if data loading was successful, False otherwise
@@ -127,16 +127,23 @@ class CloudResourceDeviationAnalyzer:
                 self.logger.error(f"Input file not found: {self.input_file}")
                 return False
             
-            # Read the Excel file
-            excel_file = pd.ExcelFile(self.input_file)
-            
-            # Check if Cloud_Resource_Inventory sheet exists
-            if "Cloud_Resource_Inventory" not in excel_file.sheet_names:
-                self.logger.error("Required sheet 'Cloud_Resource_Inventory' not found in input file")
+            # If the file exists but is corrupted, log the error
+            try:
+                # Try to read the Excel file
+                excel_file = pd.ExcelFile(self.input_file)
+                
+                # Check if Cloud_Resource_Inventory sheet exists
+                if "Cloud_Resource_Inventory" not in excel_file.sheet_names:
+                    self.logger.error("Required sheet 'Cloud_Resource_Inventory' not found in input file")
+                    return False
+                
+                # Load the Cloud_Resource_Inventory sheet
+                self.cloud_data = pd.read_excel(excel_file, sheet_name="Cloud_Resource_Inventory")
+                
+            except Exception as excel_error:
+                self.logger.error(f"Excel file appears to be corrupted: {str(excel_error)}")
+                self.logger.info("Please regenerate the data by running: python main.py --process cloud")
                 return False
-            
-            # Load the Cloud_Resource_Inventory sheet
-            self.cloud_data = pd.read_excel(excel_file, sheet_name="Cloud_Resource_Inventory")
             
             # Check if required columns exist
             required_columns = ["System Name", "Environment Type", "Subscription ID", "Resource Group Name"]
@@ -149,7 +156,7 @@ class CloudResourceDeviationAnalyzer:
             return True
         except Exception as e:
             self.logger.error(f"Error loading data: {str(e)}")
-            return False 
+            return False
         
     def analyze_cloud_deviations(self):
         """
@@ -675,16 +682,20 @@ class CloudResourceDeviationAnalyzer:
             # Generate metadata
             metadata_df = self._create_metadata()
             
-            # Create a writer object to write to a new Excel file
-            with pd.ExcelWriter(output_file_path, engine='openpyxl') as writer:
-                # Write the input cloud resource data to the first sheet
-                self.cloud_data.to_excel(writer, sheet_name="Cloud_Resource_Inventory", index=False)
-                
-                # Write the analysis results to the second sheet
-                self.analysis_results.to_excel(writer, sheet_name="Cloud_Resource_Deviation_Analysis", index=False)
-                
-                # Write the metadata to the third sheet
-                metadata_df.to_excel(writer, sheet_name="Metadata", index=False)
+            # Create a writer object to write to a new Excel file - DON'T use with statement
+            writer = pd.ExcelWriter(output_file_path, engine='openpyxl')
+            
+            # Write the input cloud resource data to the first sheet
+            self.cloud_data.to_excel(writer, sheet_name="Cloud_Resource_Inventory", index=False)
+            
+            # Write the analysis results to the second sheet
+            self.analysis_results.to_excel(writer, sheet_name="Cloud_Resource_Deviation_Analysis", index=False)
+            
+            # Write the metadata to the third sheet
+            metadata_df.to_excel(writer, sheet_name="Metadata", index=False)
+            
+            # Explicitly close the writer
+            writer.close()
             
             self.logger.info(f"Analysis results saved to {output_file_path}")
             return output_file_path

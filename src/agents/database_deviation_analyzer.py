@@ -112,7 +112,7 @@ class DatabaseDeviationAnalyzer:
         
     def load_data(self):
         """
-        Load data from the input file.
+        Load data from the input file with improved error handling for corrupted files.
         
         Returns:
             bool: True if data loading was successful, False otherwise
@@ -127,8 +127,24 @@ class DatabaseDeviationAnalyzer:
                 self.logger.error(f"Input file not found: {self.input_file}")
                 return False
             
-            # Read the Excel file
-            excel_file = pd.ExcelFile(self.input_file)
+            try:
+                # Try to read the Excel file
+                excel_file = pd.ExcelFile(self.input_file)
+            except Exception as excel_error:
+                self.logger.error(f"Excel file is corrupted: {str(excel_error)}")
+                
+                # Attempt to create a backup of the corrupted file
+                backup_path = self.input_file + ".corrupted"
+                try:
+                    import shutil
+                    shutil.copy2(self.input_file, backup_path)
+                    self.logger.info(f"Created backup of corrupted file at: {backup_path}")
+                except Exception as backup_error:
+                    self.logger.error(f"Failed to create backup: {str(backup_error)}")
+                
+                # Suggest regenerating the file
+                self.logger.info("Please regenerate the database data by running the extraction process again")
+                return False
             
             # Check if Database_Config_Mapping sheet exists
             if "Database_Config_Mapping" not in excel_file.sheet_names:
@@ -139,7 +155,7 @@ class DatabaseDeviationAnalyzer:
             self.db_data = pd.read_excel(excel_file, sheet_name="Database_Config_Mapping")
             
             # Check if required columns exist
-            required_columns = ["System Name", "Environment Type", "Env-ID"]
+            required_columns = ["System Name", "Environment Type", "DB Instance Name"]
             missing_columns = [col for col in required_columns if col not in self.db_data.columns]
             if missing_columns:
                 self.logger.error(f"Required columns {', '.join(missing_columns)} not found in Database_Config_Mapping sheet")
@@ -149,7 +165,7 @@ class DatabaseDeviationAnalyzer:
             return True
         except Exception as e:
             self.logger.error(f"Error loading data: {str(e)}")
-            return False 
+            return False
 
     def analyze_database_deviations(self):
         """
